@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="edu.vub.at.nfcpoker"
-    android:versionCode="1"
-    android:versionName="1.0" >
+    android:versionCode="1001"
+    android:versionName="1.1-20121024" >
 
     <uses-sdk
         android:minSdkVersion="15"
@@ -13,7 +13,20 @@
     <uses-feature
         android:name="android.hardware.wifi.direct"
         android:required="false" />
+    <uses-feature
+        android:name="android.hardware.bluetooth"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.camera.autofocus"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.wifi"
+        android:required="true" />
 
+    <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.NFC" />
     <uses-permission android:name="android.permission.BLUETOOTH" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
