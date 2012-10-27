@@ -6,6 +6,9 @@
     <item android:id="@+id/allIn"
         android:title="All in"
         android:showAsAction="never" />
+    <item android:id="@+id/qrCode"
+        android:title="QrCode"
+        android:showAsAction="never" />
     <item android:id="@+id/itemSetName"
         android:title="Set Nickname" />
     <item android:id="@+id/itemAddMoney"

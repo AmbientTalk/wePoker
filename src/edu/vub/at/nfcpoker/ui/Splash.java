@@ -8,7 +8,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.UUID;
 import java.util.regex.Pattern;
 
 import android.accounts.Account;
@@ -59,6 +58,7 @@ public class Splash extends Activity {
 	// UI
 	public static Handler messageHandler;
 	private boolean isTablet = false;
+	private boolean isTV = false;
 	private int startClientServerTimerTimeout = 10000;
 	private int startClientServerTimerTimeout2 = 30000;
 
@@ -73,6 +73,9 @@ public class Splash extends Activity {
 		View tablet_layout = findViewById(R.id.tablet_layout);
 		if (tablet_layout != null)
 			isTablet = true;
+		
+		if (getPackageManager().hasSystemFeature("com.google.android.tv"))
+			isTV = true;
 		
 		Button server = (Button) findViewById(R.id.server);
 		if (server != null)
@@ -109,7 +112,9 @@ public class Splash extends Activity {
 			}
 		};
 		
-		if (!isTablet) {
+		if (isTV) {
+			startServer();
+		} else if (!isTablet) {
 			this.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
 			
 			//TODO: Only try Wifi-direct if available and no wifi is found.

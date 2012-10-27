@@ -12,6 +12,7 @@ import edu.vub.at.nfcpoker.Card;
 import edu.vub.at.nfcpoker.ConcretePokerServer;
 import edu.vub.at.nfcpoker.ConcretePokerServer.GameState;
 import edu.vub.at.nfcpoker.Constants;
+import edu.vub.at.nfcpoker.QRFunctions;
 import edu.vub.at.nfcpoker.R;
 import android.net.Uri;
 import android.net.wifi.WifiManager;
@@ -54,7 +55,8 @@ public class ServerActivity extends Activity implements ServerViewInterface {
     	super.onCreate(savedInstanceState);
     	setContentView(R.layout.activity_server);
     	View tablet_layout = findViewById(R.id.tablet_layout);
-    	final boolean isDedicated = tablet_layout != null;
+    	boolean isTV = getPackageManager().hasSystemFeature("com.google.android.tv");
+    	final boolean isDedicated = tablet_layout != null || isTV;
     	isWifiDirect = getIntent().getBooleanExtra("wifiDirect", false);
     	
 		ServerStarter startServer = new ServerStarter() {
@@ -82,8 +84,7 @@ public class ServerActivity extends Activity implements ServerViewInterface {
 		};
     	
 		if (isWifiDirect) {
-    		WifiDirectManager wdm = WifiDirectManager.create(this, getMainLooper(), true);
-    		wdm.createGroup(startServer);
+    		new WifiDirectManager.Creator(this, startServer).run();
     	} else {
     		WifiManager wm = (WifiManager) getSystemService(WIFI_SERVICE);
     		currentWifiGroupName = wm.getConnectionInfo().getSSID();
@@ -108,27 +109,6 @@ public class ServerActivity extends Activity implements ServerViewInterface {
         getMenuInflater().inflate(R.menu.activity_server, menu);
         return true;
     }
-    
-    // Taken from the ZXing source code.
-    private static final int WHITE = 0xFFFFFFFF;
-    private static final int BLACK = 0xFF000000;
-    
-    private Bitmap encodeBitmap(String contents) throws WriterException {
-    	int width = 200;
-    	int height = 200;
-		BitMatrix result = new QRCodeWriter().encode(contents, BarcodeFormat.QR_CODE, width, height);
-        int[] pixels = new int[width * height];
-        for (int y = 0; y < height; y++) {
-          int offset = y * width;
-          for (int x = 0; x < width; x++) {
-            pixels[offset + x] = result.get(x, y) ? BLACK : WHITE;
-          }
-        }
-
-        Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
-        bitmap.setPixels(pixels, 0, width, 0, 0, width, height);
-        return bitmap;
-    }
 
     private Dialog wifiConnectionDialog;
     
@@ -150,8 +130,8 @@ public class ServerActivity extends Activity implements ServerViewInterface {
 			});
 			
 			try {
-				String connectionString = createJoinUri();
-				Bitmap qrCode = encodeBitmap(connectionString);
+				String connectionString = QRFunctions.createJoinUri(currentWifiGroupName, currentWifiPassword, currentIpAddress, true);
+				Bitmap qrCode = QRFunctions.encodeBitmap(connectionString);
 				ImageView qrCodeIV = (ImageView) dialogGuts.findViewById(R.id.qr_code);
 				qrCodeIV.setImageBitmap(qrCode);
 			} catch (WriterException e) {
@@ -167,19 +147,6 @@ public class ServerActivity extends Activity implements ServerViewInterface {
 		}
 		
 		wifiConnectionDialog.show();
-	}
-	
-    private String createJoinUri() {
-    	Uri uri = Uri.parse(Constants.INTENT_BASE_URL)
-    			     .buildUpon()
-    			     .appendQueryParameter(Constants.INTENT_WIFI_NAME, currentWifiGroupName)
-    			     .appendQueryParameter(Constants.INTENT_WIFI_PASSWORD, currentWifiPassword)
-    			     .appendQueryParameter(Constants.INTENT_WIFI_IS_DIRECT, "" + isWifiDirect)
-    			     .appendQueryParameter(Constants.INTENT_SERVER_IP, currentIpAddress)
-    			     .build();
-    	
-    	return uri.toString();
-
 	}
 
 	int nextToReveal = 0;

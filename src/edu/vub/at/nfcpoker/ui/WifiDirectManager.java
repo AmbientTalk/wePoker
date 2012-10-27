@@ -2,6 +2,7 @@ package edu.vub.at.nfcpoker.ui;
 
 import java.net.InetAddress;
 
+import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -17,13 +18,33 @@ import android.net.wifi.p2p.WifiP2pManager.ActionListener;
 import android.net.wifi.p2p.WifiP2pManager.Channel;
 import android.net.wifi.p2p.WifiP2pManager.GroupInfoListener;
 import android.net.wifi.p2p.WifiP2pManager.PeerListListener;
+import android.os.Build;
 import android.os.Looper;
 import android.util.Log;
 import android.widget.Toast;
 import edu.vub.at.nfcpoker.ui.DiscoveryAsyncTask.DiscoveryCompletionListener;
 import edu.vub.at.nfcpoker.ui.ServerActivity.ServerStarter;
 
+@TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
 public class WifiDirectManager extends BroadcastReceiver implements GroupInfoListener, PeerListListener {
+
+	public static class Creator implements Runnable {
+		
+		private Activity act;
+		private ServerStarter serverStarter;
+
+		Creator(Activity act, ServerStarter startServer) {
+			this.act = act;
+			this.serverStarter = startServer;
+		} 
+
+		@Override
+		public void run() {
+			WifiDirectManager wdm = WifiDirectManager.create(act, act.getMainLooper(), true);
+    		wdm.createGroup(serverStarter);			
+		}
+
+	}
 
 	public class LoggingActionListener implements ActionListener {
 		

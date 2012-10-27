@@ -64,10 +64,10 @@ public class QRJoinerActivity extends Activity {
 					wm.setWifiEnabled(true);
 				}
 				if (new_wifi_status == WifiManager.WIFI_STATE_ENABLED) {
-					
 					if (currentlyJoining) {
 						publishProgress("Connecting to network...");
-						if (wifi_isWD) {
+						if (!wifi_pass.equals("")) {
+							// If we have the password
 							WifiConfiguration config = new WifiConfiguration();
 							config.SSID = '"' + wifi_name + '"';
 							config.preSharedKey = '"' + wifi_pass + '"';
@@ -114,9 +114,8 @@ public class QRJoinerActivity extends Activity {
 
 	protected String wifi_name;
 	protected String wifi_pass;
-	protected boolean wifi_isWD;
 	protected String wifi_server;
-
+	protected boolean wifi_isDedicated;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -127,8 +126,8 @@ public class QRJoinerActivity extends Activity {
         Uri launcher = getIntent().getData();
         wifi_name = launcher.getQueryParameter(Constants.INTENT_WIFI_NAME);
         wifi_pass = launcher.getQueryParameter(Constants.INTENT_WIFI_PASSWORD);
-        wifi_isWD = launcher.getQueryParameter(Constants.INTENT_WIFI_IS_DIRECT).equals("true");
         wifi_server = launcher.getQueryParameter(Constants.INTENT_SERVER_IP);
+        wifi_isDedicated = launcher.getQueryParameter(Constants.INTENT_IS_DEDICATED).equals("true");
         
         intentFilter = new IntentFilter();
 		intentFilter.addAction(WifiManager.WIFI_STATE_CHANGED_ACTION);
@@ -157,7 +156,7 @@ public class QRJoinerActivity extends Activity {
 		Intent i = new Intent(this, ClientActivity.class);
 		i.putExtra("ip", wifi_server);
 		i.putExtra("port", CommLib.SERVER_PORT);
-		i.putExtra("isDedicated", false); // todo
+		i.putExtra("isDedicated", wifi_isDedicated);
 		startActivity(i);
 		finish();
 	}

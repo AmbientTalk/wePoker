@@ -11,6 +11,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.Vector;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 import android.util.Log;
@@ -34,8 +35,8 @@ import edu.vub.at.nfcpoker.comm.Message.ReceiveHoleCardsMessage;
 import edu.vub.at.nfcpoker.comm.Message.ReceivePublicCards;
 import edu.vub.at.nfcpoker.comm.Message.RequestClientActionFutureMessage;
 import edu.vub.at.nfcpoker.comm.Message.RoundWinnersDeclarationMessage;
-import edu.vub.at.nfcpoker.comm.Message.StateChangeMessage;
 import edu.vub.at.nfcpoker.comm.Message.SetIDMessage;
+import edu.vub.at.nfcpoker.comm.Message.StateChangeMessage;
 import edu.vub.at.nfcpoker.comm.PokerServer;
 import edu.vub.at.nfcpoker.ui.ServerViewInterface;
 
@@ -186,7 +187,7 @@ public class ConcretePokerServer extends PokerServer  {
 			synchronized(this) {
 				for (Integer i : clientsInGame.keySet()) {
 					if (clientsInGame.get(i) == c) {
-						clientsInGame.remove(i);
+						removeClientInGame(i);
 						Future<ClientAction> fut = actionFutures.get(i);
 						if (fut != null && ! fut.isResolved()) 
 							fut.resolve(new ClientAction(Message.ClientActionType.Fold, 0));
@@ -206,6 +207,7 @@ public class ConcretePokerServer extends PokerServer  {
 
 		public ConcurrentSkipListMap<Integer, Connection> newClients = new ConcurrentSkipListMap<Integer, Connection>();
 		public ConcurrentSkipListMap<Integer, Connection> clientsInGame = new ConcurrentSkipListMap<Integer, Connection>();
+		public Vector<Integer> clientsIdsInRoundOrder = new Vector<Integer>();
 		public ConcurrentSkipListMap<Integer, Future<ClientAction>> actionFutures = new ConcurrentSkipListMap<Integer, Future<ClientAction>>();  
 		public ConcurrentSkipListMap<Integer, Integer> playerMoney = new ConcurrentSkipListMap<Integer, Integer>();
 		public ConcurrentSkipListMap<Integer, String> playerNames = new ConcurrentSkipListMap<Integer, String>();
@@ -228,7 +230,7 @@ public class ConcretePokerServer extends PokerServer  {
 					newClients.clear();
 					for (Integer i : clientsInGame.keySet()) {
 						if (clientsInGame.get(i) == null)
-							clientsInGame.remove(i);
+							removeClientInGame(i);
 					}
 					if (clientsInGame.size() < 2) {
 						try {
@@ -337,6 +339,8 @@ public class ConcretePokerServer extends PokerServer  {
 					}
 				}
 				
+				cycleClientsInGame();
+				
 				// finally, sleep
 				try {
 					Thread.sleep(10000);
@@ -359,17 +363,32 @@ public class ConcretePokerServer extends PokerServer  {
 			playerMoney.put(id, INITIAL_MONEY);
 			gui.addPlayer(id, name, INITIAL_MONEY);
 			
+			addClientInGame(id, connection);
+		}
+		
+		private void addClientInGame(Integer id, Connection connection) {
 			clientsInGame.put(id, connection);
+			clientsIdsInRoundOrder.add(id);
+		}
+		
+		private void removeClientInGame(Integer id) {
+			clientsInGame.remove(id);
+		}
+		
+		private void cycleClientsInGame() {
+			clientsIdsInRoundOrder.add(clientsIdsInRoundOrder.elementAt(0));
+			clientsIdsInRoundOrder.removeElementAt(0);
 		}
 		
 		public void roundTable() throws RoundEndedException {
 			
 			int minBet = 0;
-			int playersRemaining = 0;
 			boolean increasedBet = true;
 			
 			// Reset the previous action (unless folded)
-			for (Integer i : clientsInGame.navigableKeySet()) {
+			Iterator<Integer> clientsIterator = clientsIdsInRoundOrder.iterator();
+			while (clientsIterator.hasNext()) {
+				Integer i = clientsIterator.next();
 				Future<ClientAction> oldFut = actionFutures.get(i);
 				if (oldFut != null &&
 					oldFut.isResolved() &&
@@ -386,9 +405,11 @@ public class ConcretePokerServer extends PokerServer  {
 			
 			// Two table rounds if needed
 			for (int r = 0; r < 2 && increasedBet; r++) {
-				playersRemaining = 0;
 				increasedBet = false;
-				for (Integer i : clientsInGame.navigableKeySet()) {
+				int playersRemaining = clientsIdsInRoundOrder.size();
+				Iterator<Integer> clientsIterator2 = clientsIdsInRoundOrder.iterator();
+				while (clientsIterator2.hasNext()) {
+					Integer i = clientsIterator2.next();
 					while (true) {
 						ClientAction ca;
 						Future<ClientAction> oldFut = actionFutures.get(i);
@@ -429,15 +450,14 @@ public class ConcretePokerServer extends PokerServer  {
 						switch (ca.type) {
 						case Fold: 
 							broadcast(new ClientActionMessage(ca, i));
+							playersRemaining--;
 							break;
 						case Check: // And CALL (client sends diffMoney!)
-							playersRemaining++;
 							broadcast(new ClientActionMessage(ca, i));
 							addMoney(i, -ca.getExtra());
 							addChipsToPool(ca.getExtra());
 							break;
 						case AllIn: // Client sends diffMoney
-							playersRemaining++;
 							if (ca.getExtra() > minBet) {
 								minBet = ca.extra;
 								increasedBet = true; // ask for call or fold in second round
@@ -451,7 +471,6 @@ public class ConcretePokerServer extends PokerServer  {
 								actionFutures.remove(i);
 								continue; // ask for a new bet
 							}
-							playersRemaining++;
 							broadcast(new ClientActionMessage(ca, i));
 							if (ca.getExtra() > minBet) {
 								minBet = ca.extra;
@@ -467,10 +486,10 @@ public class ConcretePokerServer extends PokerServer  {
 						}
 						break;
 					}
+					if (playersRemaining <= 1)
+						throw new RoundEndedException();
 				}
 			}
-			if (playersRemaining <= 1)
-				throw new RoundEndedException();
 		}
 		
 		
