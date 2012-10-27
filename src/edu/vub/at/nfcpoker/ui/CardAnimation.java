@@ -33,7 +33,7 @@ public class CardAnimation {
 
 		@Override
 		public void setCardImage(ImageButton ib, int drawable) {
-			// TODO Auto-generated method stub
+			ib.setImageResource(drawable);
 			
 		}
 

@@ -70,6 +70,7 @@ import edu.vub.at.nfcpoker.settings.Settings;
 import edu.vub.at.nfcpoker.ui.tools.Levenshtein;
 import edu.vub.at.nfcpoker.ui.tools.PageProvider;
 import fi.harism.curl.CurlView;
+import com.flurry.android.FlurryAgent;
 
 public class ClientActivity extends Activity implements OnClickListener {
 
@@ -122,6 +123,7 @@ public class ClientActivity extends Activity implements OnClickListener {
 	private void hideBarrier() {
 		if (barrier != null) {
 			barrier.dismiss();
+			FlurryAgent.endTimedEvent("Initialising_Game");
 			barrier = null;
 		}
 	}

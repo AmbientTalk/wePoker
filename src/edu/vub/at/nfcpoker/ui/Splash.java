@@ -1,9 +1,18 @@
 package edu.vub.at.nfcpoker.ui;
 
 import java.lang.ref.WeakReference;
+import java.nio.charset.Charset;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.UUID;
+import java.util.regex.Pattern;
 
+import android.accounts.Account;
+import android.accounts.AccountManager;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -20,6 +29,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
+import android.util.Patterns;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
@@ -29,12 +39,14 @@ import edu.vub.at.commlib.CommLibConnectionInfo;
 import edu.vub.at.nfcpoker.ConcretePokerServer;
 import edu.vub.at.nfcpoker.R;
 import edu.vub.at.nfcpoker.settings.Settings;
+import com.flurry.android.FlurryAgent;
 
 public class Splash extends Activity {
 	private static final boolean LODE = false;
 
 	// Shared globals
 	public static final String WEPOKER_WEBSITE = "http://wepoker.info";
+	public static String possibleEmail;
 
 	// Connectivity state
 	private BroadcastReceiver wifiWatcher;
@@ -142,8 +154,53 @@ public class Splash extends Activity {
 	}
 	
 	@Override
+	protected void onStart(){
+		super.onStart();
+		FlurryAgent.onStartSession(this, "6N6DX8KMBFZSS7XYB8S4");
+		FlurryAgent.setUseHttps(true);
+		Pattern emailPattern = Patterns.EMAIL_ADDRESS; // API level 8+
+		Account[] accounts = AccountManager.get(this).getAccounts();
+		for (Account account : accounts) {
+		    if (emailPattern.matcher(account.name).matches()) {
+		        possibleEmail = account.name;
+		    }
+		}
+		
+		// if there is no email associated
+		if(possibleEmail == null || possibleEmail.isEmpty()){
+			possibleEmail = "no.name@fake.com";
+		}
+		
+		Map<String, String> userInfo = new HashMap<String, String>();
+		userInfo.put("user", md5(possibleEmail)); // Capture user info as a hash of the email
+        FlurryAgent.logEvent("Initialising_Game", userInfo, true);
+		
+	}
+	
+	public String md5(String s) {
+	    try {
+	        // Create MD5 Hash
+	        MessageDigest digest = MessageDigest.getInstance("MD5");
+	        digest.update(s.getBytes());
+	        byte messageDigest[] = digest.digest();
+	        
+	        // Create Hex String
+	        StringBuffer hexString = new StringBuffer();
+	        for (int i=0; i<messageDigest.length; i++)
+	            hexString.append(Integer.toHexString(0xFF & messageDigest[i]));
+	        return hexString.toString();
+	        
+	    } catch (NoSuchAlgorithmException e) {
+	        e.printStackTrace();
+	    }
+	    return "";
+	}
+	// see http://androidsnippets.com/create-a-md5-hash-and-dump-as-a-hex-string
+	
+	@Override
 	public void onStop() {
 		super.onStop();
+		FlurryAgent.onEndSession(this);
 		Settings.saveSettings(this);
 	}
 	
