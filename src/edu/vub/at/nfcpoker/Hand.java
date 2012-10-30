@@ -243,5 +243,10 @@ public class Hand implements Comparable<Hand> {
 			
 		return bestHand;
 	}
+	
+	public int getValue(){
+		return value[0];
+	}
+	
 }
 
