@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="edu.vub.at.nfcpoker"
-    android:versionCode="1017"
-    android:versionName="1.1-20130109-ces5" >
+    android:versionCode="1020"
+    android:versionName="1.2-20130125" >
 
     <uses-sdk
         android:minSdkVersion="10"
